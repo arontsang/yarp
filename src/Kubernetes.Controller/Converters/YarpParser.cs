@@ -10,6 +10,7 @@ using YamlDotNet.Serialization;
 using Yarp.ReverseProxy.Configuration;
 using Yarp.Kubernetes.Controller.Caching;
 using System.Runtime.InteropServices;
+using Yarp.ReverseProxy.Forwarder;
 
 namespace Yarp.Kubernetes.Controller.Converters;
 
@@ -95,6 +96,7 @@ internal static class YarpParser
         // make sure cluster is present
         foreach (var subset in subsets ?? Enumerable.Empty<V1EndpointSubset>())
         {
+            var isRoutePresent = false;
             foreach (var port in subset.Ports ?? Enumerable.Empty<Corev1EndpointPort>())
             {
                 if (!MatchesPort(port, servicePort))
@@ -102,10 +104,13 @@ internal static class YarpParser
                     continue;
                 }
 
-                var pathMatch = FixupPathMatch(path);
-                var host = rule.Host;
-
-                routes.Add(CreateRoute(ingressContext, path, cluster, pathMatch, host));
+                if (!isRoutePresent)
+                {
+                    var pathMatch = FixupPathMatch(path);
+                    var host = rule.Host;
+                    routes.Add(CreateRoute(ingressContext, path, cluster, pathMatch, host));
+                    isRoutePresent = true;
+                }
 
                 // Add destination for every endpoint address
                 foreach (var address in subset.Addresses ?? Enumerable.Empty<V1EndpointAddress>())
@@ -118,7 +123,13 @@ internal static class YarpParser
 
     private static void AddDestination(ClusterTransfer cluster, YarpIngressContext ingressContext, string host, int? port)
     {
-        var protocol = ingressContext.Options.Https ? "https" : "http";
+        var isHttps =
+            ingressContext.Options.Https ||
+            cluster.ClusterId.EndsWith(":443", StringComparison.Ordinal) ||
+            cluster.ClusterId.EndsWith(":https", StringComparison.OrdinalIgnoreCase);
+
+        var protocol = isHttps ? "https" : "http";
+
         var uri = $"{protocol}://{host}";
         if (port.HasValue)
         {
@@ -167,6 +178,7 @@ internal static class YarpParser
         cluster.SessionAffinity = ingressContext.Options.SessionAffinity;
         cluster.HealthCheck = ingressContext.Options.HealthCheck;
         cluster.HttpClientConfig = ingressContext.Options.HttpClientConfig;
+        cluster.HttpRequest = ingressContext.Options.HttpRequest;
         return cluster;
     }
 
@@ -259,6 +271,10 @@ internal static class YarpParser
         if (annotations.TryGetValue("yarp.ingress.kubernetes.io/http-client", out var httpClientConfig))
         {
             options.HttpClientConfig = YamlDeserializer.Deserialize<HttpClientConfig>(httpClientConfig);
+        }
+        if (annotations.TryGetValue("yarp.ingress.kubernetes.io/http-request", out var httpRequest))
+        {
+            options.HttpRequest = YamlDeserializer.Deserialize<ForwarderRequestConfig>(httpRequest);
         }
         if (annotations.TryGetValue("yarp.ingress.kubernetes.io/health-check", out var healthCheck))
         {

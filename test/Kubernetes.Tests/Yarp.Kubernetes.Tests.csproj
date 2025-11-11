@@ -2,7 +2,7 @@
 
   <PropertyGroup>
     <TargetFrameworks>$(TestTFMs)</TargetFrameworks>
-    <OutputType>Library</OutputType>
+    <OutputType>Exe</OutputType>
     <NoWarn>$(NoWarn);CS8002</NoWarn>
     <RootNamespace>Yarp.Kubernetes</RootNamespace>
   </PropertyGroup>
@@ -14,9 +14,8 @@
 
   <ItemGroup>
     <PackageReference Include="Moq" Version="$(MoqVersion)" />
-    <PackageReference Include="FluentAssertions" Version="$(FluentAssertionsVersion)" />
-    <PackageReference Include="FluentAssertions.Json" Version="$(FluentAssertionsJsonVersion)" />
     <PackageReference Include="Polly" Version="$(PollyVersion)" />
+    <PackageReference Include="Newtonsoft.Json" Version="$(NewtonsoftJsonVersion)" />
   </ItemGroup>
 
   <ItemGroup>

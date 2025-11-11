@@ -18,8 +18,11 @@ internal abstract class BaseHashCookieSessionAffinityPolicy : ISessionAffinityPo
 
     public BaseHashCookieSessionAffinityPolicy(TimeProvider timeProvider, ILogger logger)
     {
-        _timeProvider = timeProvider ?? throw new ArgumentNullException(nameof(timeProvider));
-        _logger = logger ?? throw new ArgumentNullException(nameof(logger));
+        ArgumentNullException.ThrowIfNull(timeProvider);
+        ArgumentNullException.ThrowIfNull(logger);
+
+        _timeProvider = timeProvider;
+        _logger = logger;
     }
 
     public abstract string Name { get; }
@@ -42,6 +45,8 @@ internal abstract class BaseHashCookieSessionAffinityPolicy : ISessionAffinityPo
         {
             var affinityKey = GetDestinationHash(destination);
             var affinityCookieOptions = AffinityHelpers.CreateCookieOptions(config.Cookie, context.Request.IsHttps, _timeProvider);
+
+            // CodeQL [SM02373] - Whether CookieOptions.Secure is used depends on YARP configuration, and session affinity may be used in non-HTTPS setups. Hash-based affinity policies do not intend to provide privacy protection. See https://learn.microsoft.com/aspnet/core/fundamentals/servers/yarp/session-affinity#key-protection.
             context.Response.Cookies.Append(config.AffinityKeyName, affinityKey, affinityCookieOptions);
         }
     }

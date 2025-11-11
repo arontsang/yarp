@@ -20,7 +20,8 @@ internal sealed class CookieSessionAffinityPolicy : BaseEncryptedSessionAffinity
         ILogger<CookieSessionAffinityPolicy> logger)
         : base(dataProtectionProvider, logger)
     {
-        _timeProvider = timeProvider ?? throw new ArgumentNullException(nameof(timeProvider));
+        ArgumentNullException.ThrowIfNull(timeProvider);
+        _timeProvider = timeProvider;
     }
 
     public override string Name => SessionAffinityConstants.Policies.Cookie;
@@ -39,6 +40,8 @@ internal sealed class CookieSessionAffinityPolicy : BaseEncryptedSessionAffinity
     protected override void SetAffinityKey(HttpContext context, ClusterState cluster, SessionAffinityConfig config, string unencryptedKey)
     {
         var affinityCookieOptions = AffinityHelpers.CreateCookieOptions(config.Cookie, context.Request.IsHttps, _timeProvider);
+
+        // CodeQL [SM02373] - Whether CookieOptions.Secure is used depends on YARP configuration, and session affinity may be used in non-HTTPS setups. Cookie values are encrypted using ASP.NET DataProtection. See https://learn.microsoft.com/aspnet/core/fundamentals/servers/yarp/session-affinity#key-protection.
         context.Response.Cookies.Append(config.AffinityKeyName, Protect(unencryptedKey), affinityCookieOptions);
     }
 }

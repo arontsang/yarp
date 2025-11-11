@@ -3,11 +3,11 @@
 
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Testing;
-using Xunit.Abstractions;
+using Xunit;
 
 namespace Yarp.ReverseProxy.Common;
 
-internal sealed class TestLoggerProvider(ITestOutputHelper output) : ILoggerProvider
+public sealed class TestLoggerProvider(ITestOutputHelper output) : ILoggerProvider
 {
     private readonly XunitLoggerProvider _xunitLoggerProvider = new(output);
 
